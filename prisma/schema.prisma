@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum TournamentStatus {
+  UPCOMING
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum FundraiserStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum AchievementCategory {
+  INTERNATIONAL
+  NATIONAL
+  DOMESTIC
+}
+
+model Sport {
+  id          String       @id @default(uuid())
+  name        String
+  slug        String       @unique
+  description String?
+  icon        String?
+  color       String? // hex color for theming
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tournaments Tournament[]
+  players     Player[]
+  teams       Team[]
+  news        SportsNews[]
+}
+
+model Tournament {
+  id                 String           @id @default(uuid())
+  name               String
+  slug               String           @unique
+  description        String?
+  status             TournamentStatus @default(UPCOMING)
+  startDate          DateTime
+  endDate            DateTime?
+  location           String?
+  city               String?
+  state              String?
+  country            String           @default("India")
+  latitude           Float?
+  longitude          Float?
+  streamingUrl       String?
+  streamingPlatforms String[]
+  sportId            String
+  sport              Sport            @relation(fields: [sportId], references: [id])
+  matches            Match[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([sportId])
+  @@index([status])
+  @@index([startDate])
+}
+
+model Match {
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  teamA        String
+  teamB        String
+  scoreA       Int?
+  scoreB       Int?
+  status       String     @default("SCHEDULED") // SCHEDULED, LIVE, COMPLETED
+  matchDate    DateTime
+  venue        String?
+  streamingUrl String?
+  createdAt    DateTime   @default(now())
+
+  @@index([tournamentId])
+  @@index([matchDate])
+}
+
+model Team {
+  id           String        @id @default(uuid())
+  name         String
+  slug         String        @unique
+  shortName    String?
+  logo         String?
+  description  String?
+  foundedYear  Int?
+  city         String?
+  state        String?
+  country      String        @default("India")
+  website      String?
+  socialLinks  Json? // {twitter, instagram, facebook, youtube}
+  sportId      String
+  sport        Sport         @relation(fields: [sportId], references: [id])
+  players      Player[]
+  achievements Achievement[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([sportId])
+}
+
+model Player {
+  id           String        @id @default(uuid())
+  name         String
+  slug         String        @unique
+  avatar       String?
+  bio          String?
+  birthDate    DateTime?
+  birthPlace   String?
+  height       Float? // in cm
+  weight       Float? // in kg
+  position     String? // e.g. "Batsman", "Forward", "Singles"
+  socialLinks  Json? // {twitter, instagram, facebook, youtube}
+  medals       Json? // {gold: 5, silver: 3, bronze: 2}
+  sportId      String
+  sport        Sport         @relation(fields: [sportId], references: [id])
+  teamId       String?
+  team         Team?         @relation(fields: [teamId], references: [id])
+  achievements Achievement[]
+  fundraisers  Fundraiser[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([sportId])
+  @@index([teamId])
+}
+
+model Achievement {
+  id          String              @id @default(uuid())
+  title       String
+  description String?
+  date        DateTime
+  category    AchievementCategory @default(NATIONAL)
+  playerId    String?
+  player      Player?             @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  teamId      String?
+  team        Team?               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  sportId     String?
+  createdAt   DateTime            @default(now())
+
+  @@index([playerId])
+  @@index([teamId])
+  @@index([date])
+}
+
+model Fundraiser {
+  id           String           @id @default(uuid())
+  playerId     String
+  player       Player           @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  target       Int // in rupees
+  raised       Int              @default(0)
+  status       FundraiserStatus @default(ACTIVE)
+  endDate      DateTime?
+  donationLink String? // External link for donations
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([playerId])
+  @@index([status])
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique // Supabase auth user id
+  email     String   @unique
+  name      String?
+  avatar    String?
+  role      String   @default("user") // user, admin, player, moderator
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SportsNews {
+  id          String    @id @default(uuid())
+  title       String
+  slug        String
+  summary     String?
+  externalUrl String    @unique
+  sourceName  String
+  sourceUrl   String?
+  imageUrl    String?
+  category    String    @default("GENERAL")
+  importance  Int       @default(3)
+  aiTags      String[]
+  aiPayload   Json?
+  publishedAt DateTime?
+  fetchedAt   DateTime  @default(now())
+  sportId     String
+  sport       Sport     @relation(fields: [sportId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([sportId])
+  @@index([publishedAt])
+  @@index([category])
+}

@@ -1,0 +1,45 @@
+name: Daily Sports Data Scrape
+
+on:
+  schedule:
+    - cron: "30 0 * * *" # 6:00 AM IST (00:30 UTC)
+  workflow_dispatch:
+
+jobs:
+  cricket-news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: cd web && npm ci
+
+      - name: Generate Prisma client
+        run: cd web && npx prisma generate
+
+      - name: Fetch cricket news
+        run: cd web && npm run news:cricket
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CRICKET_NEWS_RSS_URL: ${{ vars.CRICKET_NEWS_RSS_URL }}
+          CRICKET_NEWS_LIMIT: ${{ vars.CRICKET_NEWS_LIMIT }}
+
+      - name: Notify on success
+        if: success()
+        run: echo "Cricket news ingestion completed successfully at $(date)"
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Cricket news ingestion failed at $(date)"
