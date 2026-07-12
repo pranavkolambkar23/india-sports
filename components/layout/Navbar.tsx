@@ -11,11 +11,13 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
+import { AdminSessionIndicator } from "@/components/admin/AdminSessionIndicator";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const navLinks = [
   { href: "/sports", label: "Sports", icon: Trophy },
+  { href: "/teams", label: "Teams", icon: Users },
   { href: "/tournaments", label: "Tournaments", icon: Calendar },
   { href: "/players", label: "Players", icon: Users },
   { href: "/map", label: "Map", icon: MapPin },
@@ -56,9 +58,7 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/admin" />}>
-            Admin
-          </Button>
+          <AdminSessionIndicator />
         </div>
 
         <Sheet open={open} onOpenChange={setOpen}>
@@ -86,15 +86,7 @@ export function Navbar() {
                 </Link>
               ))}
               <hr className="my-2" />
-              <Link
-                href="/admin"
-                onClick={() => {
-                  setOpen(false);
-                }}
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                Admin
-              </Link>
+              <AdminSessionIndicator mobile />
             </div>
           </SheetContent>
         </Sheet>

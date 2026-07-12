@@ -280,6 +280,7 @@ export default function AdminPage() {
       if (!response.ok) throw new Error(payload?.error || "Admin login failed.");
 
       localStorage.setItem("india-sports-admin-token", payload.token);
+      window.dispatchEvent(new Event("india-sports-admin-auth"));
       setAdminToken(payload.token);
       setAdminUser(payload.user);
       const allowed = await verifyAdmin(payload.token);
@@ -296,6 +297,7 @@ export default function AdminPage() {
 
   async function logoutAdmin() {
     localStorage.removeItem("india-sports-admin-token");
+    window.dispatchEvent(new Event("india-sports-admin-auth"));
     setAdminToken(null);
     setAdminUser(null);
     setIsAdmin(false);

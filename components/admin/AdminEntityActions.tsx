@@ -1,28 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Edit, Plus, ShieldCheck } from "lucide-react";
+import { useAdminAuth } from "@/components/admin/AdminAuthProvider";
 import { Button } from "@/components/ui/button";
-
-let adminCheck: Promise<boolean> | null = null;
-
-async function isAdmin() {
-  if (adminCheck) return adminCheck;
-
-  adminCheck = (async () => {
-    const token = localStorage.getItem("india-sports-admin-token");
-    if (!token) return false;
-
-    const response = await fetch("/api/admin/me", {
-      headers: { authorization: `Bearer ${token}` },
-    });
-
-    return response.ok;
-  })();
-
-  return adminCheck;
-}
 
 type CreateAction = {
   type: "player" | "team" | "tournament";
@@ -45,9 +26,9 @@ export function AdminEntityActions({
   edit?: EditAction;
   compact?: boolean;
 }) {
-  const [visible, setVisible] = useAdminVisible();
+  const { isAdmin } = useAdminAuth();
 
-  if (!visible) return null;
+  if (!isAdmin) return null;
 
   if (edit) {
     return (
@@ -55,7 +36,7 @@ export function AdminEntityActions({
         variant="outline"
         size={compact ? "sm" : "default"}
         nativeButton={false}
-        render={<Link href={edit.href} onClick={() => setVisible(false)} />}
+        render={<Link href={edit.href} />}
       >
         <Edit />
         {edit.label || "Edit"}
@@ -83,24 +64,4 @@ export function AdminEntityActions({
       ))}
     </div>
   );
-}
-
-function useAdminVisible() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    const timeout = setTimeout(() => {
-      isAdmin().then((allowed) => {
-        if (mounted) setVisible(allowed);
-      });
-    }, 0);
-
-    return () => {
-      mounted = false;
-      clearTimeout(timeout);
-    };
-  }, []);
-
-  return [visible, setVisible] as const;
 }
