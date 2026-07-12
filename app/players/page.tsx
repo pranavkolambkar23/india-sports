@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/db";
 import { AdminEntityActions } from "@/components/admin/AdminEntityActions";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Players - India Sports",
   description: "Discover Indian athletes across Cricket, Football, Badminton, Hockey, Volleyball, and Wrestling/MMA.",

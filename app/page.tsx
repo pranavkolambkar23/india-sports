@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     LIVE: "bg-red-500 text-white",
