@@ -3,6 +3,7 @@ import { Users, Medal, Trophy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/db";
+import { AdminEntityActions } from "@/components/admin/AdminEntityActions";
 
 export const metadata = {
   title: "Players - India Sports",
@@ -32,8 +33,8 @@ export default async function PlayersPage() {
         {players.map((player) => {
           const medals = player.medals as { gold?: number; silver?: number; bronze?: number } | null;
           return (
-            <Link key={player.id} href={`/players/${player.slug}`}>
-              <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden">
+            <Card key={player.id} className="h-full hover:shadow-lg transition-shadow group overflow-hidden">
+              <Link href={`/players/${player.slug}`}>
                 <CardContent className="p-6">
                   <div className="flex flex-col items-center text-center">
                     <div className="mb-4 h-24 w-24 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-muted group-hover:border-orange-300 transition-colors">
@@ -87,8 +88,14 @@ export default async function PlayersPage() {
                     )}
                   </div>
                 </CardContent>
-              </Card>
-            </Link>
+              </Link>
+              <div className="border-t px-4 py-3">
+                <AdminEntityActions
+                  compact
+                  edit={{ type: "player", href: `/admin/players/${player.id}/edit` }}
+                />
+              </div>
+            </Card>
           );
         })}
       </div>

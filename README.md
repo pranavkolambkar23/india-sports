@@ -19,9 +19,11 @@ A comprehensive web platform to promote Indian sports, showcase athletes, track 
 - **Support Athletes** — Crowdfunding page to donate to player campaigns
 
 ### Admin Panel
-- Dashboard with key metrics
-- Manage players, tournaments, and achievements
-- (Requires Supabase connection + auth for full functionality)
+- Football sync console for source-linked player drafts
+- Manual player editor with profile image upload and 500 KB compression limit
+- Player JSON export for admin review and manual cleanup
+- Contributor profile drafts for coaches, academy founders, and other industry helpers
+- Supabase email/password admin login with server-side `Profile.role = admin` checks
 
 ### Data Pipeline
 - **GitHub Actions** daily cron job for automated scraping
@@ -80,6 +82,7 @@ DATABASE_URL="postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgre
 NEXT_PUBLIC_SUPABASE_URL="https://[project-ref].supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="[anon-key]"
 SUPABASE_SERVICE_ROLE_KEY="[service-role-key]"
+SUPABASE_MEDIA_BUCKET="player-media"
 
 # Optional: for AI scraping
 GEMINI_API_KEY="[your-gemini-api-key]"
@@ -165,6 +168,23 @@ web/
 ---
 
 ## 🤖 Data Scraping
+
+### Football Admin Import
+Open `/admin`, sign in with a Supabase Auth user that has a matching `Profile` row where `role` is `admin`, choose Sync, and run the football import for a focus such as `Minerva Academy youth football`.
+The import creates a saved `ImportRun`, returns editable player and contributor drafts, and keeps every profile in review mode until an admin saves and publishes it.
+
+To grant admin access, create or update the matching profile row:
+
+```sql
+insert into "Profile" ("userId", email, name, role)
+values ('SUPABASE_AUTH_USER_ID', 'admin@example.com', 'Admin', 'admin')
+on conflict ("userId") do update set role = 'admin';
+```
+
+### Image Storage
+Use Supabase Storage on the free tier with a public bucket named `player-media`.
+The admin compresses profile images in the browser before upload, the API rejects files above 500 KB, and saved Prisma records store only image URLs.
+If Supabase service credentials are missing in local development, uploads fall back to `public/uploads`.
 
 ### Manual Run
 ```bash

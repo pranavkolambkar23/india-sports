@@ -124,14 +124,19 @@ export default function DonatePage() {
                       </span>
                     )}
                   </div>
-                  <Button className="w-full mt-4" size="sm" asChild>
-                    <a
-                      href={f.razorpayLink || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Heart className="mr-2 h-4 w-4" /> Contribute Now
-                    </a>
+                  <Button
+                    className="w-full mt-4"
+                    size="sm"
+                    nativeButton={false}
+                    render={
+                      <a
+                        href={f.razorpayLink || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    }
+                  >
+                    <Heart className="mr-2 h-4 w-4" /> Contribute Now
                   </Button>
                 </div>
               </CardContent>

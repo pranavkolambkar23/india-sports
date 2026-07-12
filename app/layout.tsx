@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Toaster } from "@/components/ui/sonner";
+import { NavigationLoadingProvider } from "@/components/layout/NavigationLoadingProvider";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -31,11 +32,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+    <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
+        <NavigationLoadingProvider>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </NavigationLoadingProvider>
         <Toaster position="top-right" />
       </body>
     </html>

@@ -48,6 +48,7 @@ model Tournament {
   slug               String           @unique
   description        String?
   status             TournamentStatus @default(UPCOMING)
+  winner             String?
   startDate          DateTime
   endDate            DateTime?
   location           String?
@@ -56,11 +57,14 @@ model Tournament {
   country            String           @default("India")
   latitude           Float?
   longitude          Float?
+  websiteUrl         String?
+  imageUrl           String?
   streamingUrl       String?
   streamingPlatforms String[]
   sportId            String
   sport              Sport            @relation(fields: [sportId], references: [id])
   matches            Match[]
+  players            PlayerTournament[]
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -104,6 +108,7 @@ model Team {
   sport        Sport         @relation(fields: [sportId], references: [id])
   players      Player[]
   achievements Achievement[]
+  helpers      Person[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -115,12 +120,20 @@ model Player {
   name         String
   slug         String        @unique
   avatar       String?
+  heroImage    String?
+  gallery      Json?
   bio          String?
   birthDate    DateTime?
   birthPlace   String?
+  nationality  String        @default("India")
+  ageGroup     String?
   height       Float? // in cm
   weight       Float? // in kg
   position     String? // e.g. "Batsman", "Forward", "Singles"
+  currentAcademy String?
+  profileStatus String       @default("DRAFT") // DRAFT, REVIEW, PUBLISHED
+  verificationStatus String  @default("UNVERIFIED") // UNVERIFIED, SOURCE_LINKED, VERIFIED
+  sourceUrls   String[]
   socialLinks  Json? // {twitter, instagram, facebook, youtube}
   medals       Json? // {gold: 5, silver: 3, bronze: 2}
   sportId      String
@@ -129,11 +142,89 @@ model Player {
   team         Team?         @relation(fields: [teamId], references: [id])
   achievements Achievement[]
   fundraisers  Fundraiser[]
+  tournaments  PlayerTournament[]
+  mediaAssets  MediaAsset[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   @@index([sportId])
   @@index([teamId])
+  @@index([profileStatus])
+  @@index([verificationStatus])
+}
+
+model PlayerTournament {
+  id           String     @id @default(uuid())
+  playerId     String
+  player       Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  role         String?
+  status       String     @default("UPCOMING") // PAST, CURRENT, UPCOMING
+  notes        String?
+  sourceUrls   String[]
+  createdAt    DateTime   @default(now())
+
+  @@unique([playerId, tournamentId])
+  @@index([playerId])
+  @@index([tournamentId])
+}
+
+model Person {
+  id                 String        @id @default(uuid())
+  name               String
+  slug               String        @unique
+  avatar             String?
+  roleTitle          String?
+  organization       String?
+  bio                String?
+  contributionSummary String?
+  socialLinks        Json?
+  sourceUrls         String[]
+  sportId            String?
+  teamId             String?
+  team               Team?         @relation(fields: [teamId], references: [id])
+  mediaAssets        MediaAsset[]
+  profileStatus      String        @default("DRAFT")
+  verificationStatus String        @default("UNVERIFIED")
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([sportId])
+  @@index([teamId])
+}
+
+model MediaAsset {
+  id           String   @id @default(uuid())
+  url          String
+  alt          String?
+  kind         String   @default("IMAGE")
+  sizeBytes    Int?
+  mimeType     String?
+  playerId     String?
+  player       Player?  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  personId     String?
+  person       Person?  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  uploadedBy   String?
+  sourceUrl    String?
+  createdAt    DateTime @default(now())
+
+  @@index([playerId])
+  @@index([personId])
+}
+
+model ImportRun {
+  id           String   @id @default(uuid())
+  sportSlug    String
+  focus        String?
+  status       String   @default("COMPLETED")
+  summary      String?
+  sources      String[]
+  payload      Json?
+  createdAt    DateTime @default(now())
+
+  @@index([sportSlug])
+  @@index([createdAt])
 }
 
 model Achievement {

@@ -2,8 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  Calendar,
-  MapPin,
   Trophy,
   Medal,
   Globe,
@@ -13,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/db";
+import { AdminEntityActions } from "@/components/admin/AdminEntityActions";
 
 function getAge(birthDate: Date) {
   return Math.floor(
@@ -22,12 +21,15 @@ function getAge(birthDate: Date) {
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
-  const player = await prisma.player.findUnique({
-    where: { slug: params.slug },
-  });
+  const name = params.slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
   return {
-    title: player ? `${player.name} - India Sports` : "Player - India Sports",
-    description: player?.bio,
+    title: `${name || "Player"} - India Sports`,
+    description: "Indian athlete profile, achievements, tournaments, and verified source links.",
   };
 }
 
@@ -37,21 +39,48 @@ export default async function PlayerPage(props: { params: Promise<{ slug: string
     where: { slug: params.slug },
     include: {
       sport: true,
+      team: true,
       achievements: true,
+      tournaments: {
+        include: {
+          tournament: true,
+        },
+      },
     }
   });
   
   if (!player) return notFound();
 
   const playerAchievements = player.achievements;
-  const playerTournaments = await prisma.tournament.findMany({
-    where: { sportId: player.sportId }
-  });
+  const fallbackTournaments =
+    player.tournaments.length === 0
+      ? await prisma.tournament.findMany({
+          where: { sportId: player.sportId },
+          orderBy: { startDate: "desc" },
+          take: 4,
+        })
+      : [];
 
   const age = player.birthDate ? getAge(player.birthDate) : null;
 
   const medals = player.medals as { gold?: number; silver?: number; bronze?: number } | null;
-  const socialLinks = player.socialLinks as { twitter?: string; instagram?: string } | null;
+  const socialLinks = player.socialLinks as
+    | {
+        twitter?: string;
+        instagram?: string;
+        facebook?: string;
+        youtube?: string;
+        website?: string;
+      }
+    | null;
+
+  function socialHref(kind: string, value: string) {
+    if (value.startsWith("http://") || value.startsWith("https://")) return value;
+    const handle = value.replace("@", "");
+    if (kind === "twitter") return `https://twitter.com/${handle}`;
+    if (kind === "instagram") return `https://instagram.com/${handle}`;
+    return value;
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -79,7 +108,13 @@ export default async function PlayerPage(props: { params: Promise<{ slug: string
                   <Trophy className="h-12 w-12 text-muted-foreground" />
                 )}
               </div>
-              <h1 className="text-2xl font-bold">{player.name}</h1>
+              <div className="flex flex-col items-center gap-3">
+                <h1 className="text-2xl font-bold">{player.name}</h1>
+                <AdminEntityActions
+                  compact
+                  edit={{ type: "player", href: `/admin/players/${player.id}/edit` }}
+                />
+              </div>
               <Badge
                 className="mt-2 text-white"
                 style={{
@@ -149,6 +184,14 @@ export default async function PlayerPage(props: { params: Promise<{ slug: string
                     <span className="font-medium">{player.birthPlace}</span>
                   </div>
                 )}
+                {(player.team?.name || player.currentAcademy) && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Current club</span>
+                    <span className="font-medium text-right">
+                      {player.team?.name || player.currentAcademy}
+                    </span>
+                  </div>
+                )}
                 {player.height && (
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Height</span>
@@ -164,19 +207,33 @@ export default async function PlayerPage(props: { params: Promise<{ slug: string
               </div>
 
               {socialLinks && Object.keys(socialLinks).length > 0 && (
-                <div className="mt-6 flex items-center justify-center gap-3">
-                  {socialLinks.twitter && (
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  {socialLinks.twitter && socialLinks.twitter.trim() && (
                     <Button variant="outline" size="sm" className="rounded-full gap-1" render={
-                      <a href={`https://twitter.com/${socialLinks.twitter.replace("@", "")}`} target="_blank" rel="noopener noreferrer"></a>
+                      <a href={socialHref("twitter", socialLinks.twitter)} target="_blank" rel="noopener noreferrer"></a>
                     }>
                       <Globe className="h-3 w-3" /> X
                     </Button>
                   )}
-                  {socialLinks.instagram && (
+                  {socialLinks.instagram && socialLinks.instagram.trim() && (
                     <Button variant="outline" size="sm" className="rounded-full gap-1" render={
-                      <a href={`https://instagram.com/${socialLinks.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer"></a>
+                      <a href={socialHref("instagram", socialLinks.instagram)} target="_blank" rel="noopener noreferrer"></a>
                     }>
                       <ExternalLink className="h-3 w-3" /> IG
+                    </Button>
+                  )}
+                  {socialLinks.facebook && socialLinks.facebook.trim() && (
+                    <Button variant="outline" size="sm" className="rounded-full gap-1" render={
+                      <a href={socialHref("facebook", socialLinks.facebook)} target="_blank" rel="noopener noreferrer"></a>
+                    }>
+                      <ExternalLink className="h-3 w-3" /> FB
+                    </Button>
+                  )}
+                  {socialLinks.youtube && socialLinks.youtube.trim() && (
+                    <Button variant="outline" size="sm" className="rounded-full gap-1" render={
+                      <a href={socialHref("youtube", socialLinks.youtube)} target="_blank" rel="noopener noreferrer"></a>
+                    }>
+                      <ExternalLink className="h-3 w-3" /> YT
                     </Button>
                   )}
                 </div>
@@ -228,13 +285,27 @@ export default async function PlayerPage(props: { params: Promise<{ slug: string
             </Card>
           )}
 
-          {playerTournaments.length > 0 && (
+          {(player.tournaments.length > 0 || fallbackTournaments.length > 0) && (
             <Card>
               <CardHeader>
-                <CardTitle>Related Tournaments</CardTitle>
+                <CardTitle>Tournaments</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {playerTournaments.slice(0, 4).map((t) => (
+                {player.tournaments.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between p-3 rounded-lg border"
+                  >
+                    <div>
+                      <p className="font-medium">{entry.tournament.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {entry.notes || entry.tournament.location || "Details to be verified"}
+                      </p>
+                    </div>
+                    <Badge>{entry.status}</Badge>
+                  </div>
+                ))}
+                {fallbackTournaments.map((t) => (
                   <div
                     key={t.id}
                     className="flex items-center justify-between p-3 rounded-lg border"
@@ -247,7 +318,7 @@ export default async function PlayerPage(props: { params: Promise<{ slug: string
                           day: "numeric",
                           year: "numeric",
                         })}{" "}
-                        · {t.location}
+                        / {t.location}
                       </p>
                     </div>
                     <Badge
@@ -255,8 +326,8 @@ export default async function PlayerPage(props: { params: Promise<{ slug: string
                         t.status === "LIVE"
                           ? "bg-red-500"
                           : t.status === "UPCOMING"
-                          ? "bg-blue-500"
-                          : "bg-green-600"
+                            ? "bg-blue-500"
+                            : "bg-green-600"
                       }
                     >
                       {t.status}
